@@ -28,9 +28,9 @@ variables:
   imagePullSecretProd: 'acrprod145243252-auth'
 
   #kubernetes ADO Environments
-  envdev: 'env-aks-dev-145243252.default'
-  envstage: 'env-aks-staging-145243252.default'
-  envprod: 'env-aks-prod-145243252.default'
+  envdev: 'env-aks-dev.default'
+  envstage: 'env-aks-staging.default'
+  envprod: 'env-aks-prod.default'
  
   tag: '$(Build.BuildId)'
 
