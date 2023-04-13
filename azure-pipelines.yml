@@ -11,7 +11,7 @@ resources:
 
 variables:
   #Repo Named
-  repoName: 'webfrontend'  
+  repoName: 'mywebapp'  
 
   # ACR Registry ADO Service Connections
   containerRegistryDev: 'sc-acrdev145243252'
