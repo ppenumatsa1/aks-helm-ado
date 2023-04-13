@@ -149,10 +149,10 @@ stages:
               namespace: 'default'
               command: 'install'
               chartType: 'FilePath'
-              chartPath: '$(Pipeline.Workspace)/s/app/mywebapp/'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/app/mywebapp/'
               chartVersion: 'v1'
               releaseName: 'mywebapp'
-              valueFile: '$(Pipeline.Workspace)/s/app/mywebapp/values_dev.yaml'
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/app/mywebapp/values_dev.yaml'
         
 
 
