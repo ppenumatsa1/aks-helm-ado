@@ -1,11 +1,11 @@
-# Default values for webfrontend.
+# Default values for mywebapp.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
-  repository: acrdev67640738.azurecr.io/webfrontend
+  repository: acrdev145243252.azurecr.io/mywebapp
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "v1"
