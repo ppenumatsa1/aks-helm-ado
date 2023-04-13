@@ -78,12 +78,6 @@ stages:
         installKubectl: true
         kubectlVersion: '1.26.1'
     
-    - task: HelmDeploy@0
-      displayName: Build Helm Package
-      inputs:
-        command: 'package'
-        chartPath: './app/helm'
-        chartVersion: 'v1'
 
 
 
@@ -128,5 +122,23 @@ stages:
               repository: $(repoName)
               command: push
               tags: $(tag)
+          
+          - task: KubernetesManifest@0
+            inputs:
+              action: createSecret
+              namespace: default
+              secretType: dockerRegistry
+              secretName: $(imagePullSecretDev)
+              dockerRegistryEndpoint: $(containerRegistryDev)
+            
+          - task: HelmDeploy@0
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
+              azureResourceGroup: 'rg-ingenio'
+              kubernetesCluster: 'aks-dev-145243252'
+              namespace: 'default'
+              command: 'ls'
+              
 
 
