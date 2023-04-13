@@ -8,7 +8,7 @@ image:
   repository: acrdev145243252.azurecr.io/mywebapp
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "$tag"
   ports:
     containerPort: 8080
 
