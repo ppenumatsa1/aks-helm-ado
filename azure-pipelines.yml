@@ -153,6 +153,7 @@ stages:
               chartVersion: 'v1'
               releaseName: 'mywebapp'
               valueFile: '$(Pipeline.Workspace)/ContainerImage/s/app/mywebapp/values_dev.yaml'
+              overrideValues: 'image.tag=$(tag) image.pullSecret=$(containerRegistryDev)'
         
 
 
