@@ -71,6 +71,20 @@ stages:
         artifact: 'ContainerImage'
         publishLocation: 'pipeline'
       
+    - task: HelmInstaller@0
+      displayName: Install Helm
+      inputs:
+        helmVersion: '3.11.0'
+        installKubectl: true
+        kubectlVersion: '1.26.1'
+    
+    - task: HelmDeploy@0
+      displayName: Build Helm Package
+      inputs:
+        command: 'package'
+        chartPath: './app/helm'
+        chartVersion: 'v1'
+
 
 
 - stage: CDDEV
@@ -114,38 +128,28 @@ stages:
               repository: $(repoName)
               command: push
               tags: $(tag)
-          
 
           - task: KubernetesManifest@0
+            displayName: Create Secret to pull Image from ACR Dev
             inputs:
               action: createSecret
               namespace: default
               secretType: dockerRegistry
               secretName: $(imagePullSecretDev)
               dockerRegistryEndpoint: $(containerRegistryDev)
+          
 
-          - task: replacetokens@5
-            inputs:
-              rootDirectory: '$(Pipeline.Workspace)/ContainerImage/s/manifests'
-              targetFiles: 'deployment.yml'
-              tokenPattern: 'custom'
-              writeBOM: true
-              actionOnMissing: 'warn'
-              keepToken: false
-              tokenPrefix: __
-              tokenSuffix: __
-              actionOnNoFiles: 'continue'
-              enableTelemetry: true
 
-          - task: KubernetesManifest@0
-            displayName: Deploy to Kubernetes cluster
+          - task: HelmDeploy@0
+            displayName: Deploy with Helm to Dev
             inputs:
-              action: deploy
-              manifests: |
-                $(Pipeline.Workspace)/ContainerImage/s/manifests/deployment.yml
-                $(Pipeline.Workspace)/ContainerImage/s/manifests/service.yml
-              imagePullSecrets: 
-                $(imagePullSecretDev)
-              containers: |
-                $(acrdevurl)/$(repoName):$(tag)
-            
+              azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
+              azureResourceGroup: 'rg-ingenio'
+              kubernetesCluster: 'aks-dev-145243252'
+              namespace: 'default'
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: './app/helm'
+              chartVersion: 'v1'
+              releaseName: 'myapp'
+              valueFile: 'webfrontend/values_dev.yaml'
