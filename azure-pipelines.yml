@@ -129,27 +129,4 @@ stages:
               command: push
               tags: $(tag)
 
-          - task: KubernetesManifest@0
-            displayName: Create Secret to pull Image from ACR Dev
-            inputs:
-              action: createSecret
-              namespace: default
-              secretType: dockerRegistry
-              secretName: $(imagePullSecretDev)
-              dockerRegistryEndpoint: $(containerRegistryDev)
-          
 
-
-          - task: HelmDeploy@0
-            displayName: Deploy with Helm to Dev
-            inputs:
-              azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
-              azureResourceGroup: 'rg-ingenio'
-              kubernetesCluster: 'aks-dev-145243252'
-              namespace: 'default'
-              command: 'upgrade'
-              chartType: 'FilePath'
-              chartPath: './app/helm'
-              chartVersion: 'v1'
-              releaseName: 'myapp'
-              valueFile: 'webfrontend/values_dev.yaml'
