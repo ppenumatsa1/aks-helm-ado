@@ -1,0 +1,151 @@
+# Deploy to Azure Kubernetes Service
+# Build and push image to Azure Container Registry; Deploy to Azure Kubernetes Service
+
+
+trigger:
+- feature
+
+
+resources:
+- repo: self
+
+variables:
+  #Repo Named
+  repoName: 'webfrontend'  
+
+  # ACR Registry ADO Service Connections
+  containerRegistryDev: 'sc-acrdev145243252'
+  containerRegistryStage: 'sc-acrstage145243252'
+  containerRegistryProd: 'sc-acrprod145243252'
+  dockerfilePath: '**/Dockerfile'
+
+  acrdevurl: 'acrdev145243252.azurecr.io'
+  acrstageurl: 'acrstage145243252.azurecr.io'
+  acrprodurl: 'acrprod145243252.azurecr.io'
+
+  imagePullSecretDev: 'acrdev145243252-auth'
+  imagePullSecretStage: 'acrstage145243252-auth'
+  imagePullSecretProd: 'acrprod145243252-auth'
+
+  #kubernetes ADO Environments
+  envdev: 'env-aks-dev-145243252.default'
+  envstage: 'env-aks-staging-145243252.default'
+  envprod: 'env-aks-prod-145243252.default'
+ 
+  tag: '$(Build.BuildId)'
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+
+
+stages:
+- stage: CI
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool: 
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Build Container Image
+      inputs:
+        command: build
+        repository: $(repoName)
+        dockerfile: $(dockerfilePath)
+        tags: $(tag)
+
+    - task: Docker@2
+      displayName: Save Image in CI
+      inputs:
+        repository: $(repoName)
+        command: save
+        arguments: '--output $(Pipeline.Workspace)/$(repoName).image.tar $(repoName):$(tag)'
+        addPipelineData: false
+
+
+    - task: PublishPipelineArtifact@1
+      displayName: Publish Image Artifact
+      inputs:
+        targetPath: '$(Pipeline.Workspace)'
+        artifact: 'ContainerImage'
+        publishLocation: 'pipeline'
+      
+
+
+- stage: CDDEV
+  displayName: CD for Dev Env
+  dependsOn: CI
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to Dev Environment
+    variables:
+    - name: acr-url
+      value: $(acrdevurl)
+    - name: image-name
+      value: $(repoName)
+    pool: 
+      vmImage: $(vmImageName)
+    environment: $(envdev)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Docker@2
+            displayName: Load Image from CI
+            inputs:
+              command: load
+              arguments: '--input $(Pipeline.Workspace)/ContainerImage/$(repoName).image.tar'
+            
+          - task: Docker@2
+            displayName: ReTag Image with ACR Name - BuildId
+            inputs:
+              containerRegistry: '$(containerRegistryDev)'
+              repository: '$(repoName)'
+              command: tag
+              arguments: '$(repoName):$(tag)  $(acrdevurl)/$(repoName):$(tag)'
+
+
+          - task: Docker@2
+            displayName: Push Image to Dev ACR
+            inputs:
+              containerRegistry: $(containerRegistryDev)
+              repository: $(repoName)
+              command: push
+              tags: $(tag)
+          
+
+          - task: KubernetesManifest@0
+            inputs:
+              action: createSecret
+              namespace: default
+              secretType: dockerRegistry
+              secretName: $(imagePullSecretDev)
+              dockerRegistryEndpoint: $(containerRegistryDev)
+
+          - task: replacetokens@5
+            inputs:
+              rootDirectory: '$(Pipeline.Workspace)/ContainerImage/s/manifests'
+              targetFiles: 'deployment.yml'
+              tokenPattern: 'custom'
+              writeBOM: true
+              actionOnMissing: 'warn'
+              keepToken: false
+              tokenPrefix: __
+              tokenSuffix: __
+              actionOnNoFiles: 'continue'
+              enableTelemetry: true
+
+          - task: KubernetesManifest@0
+            displayName: Deploy to Kubernetes cluster
+            inputs:
+              action: deploy
+              manifests: |
+                $(Pipeline.Workspace)/ContainerImage/s/manifests/deployment.yml
+                $(Pipeline.Workspace)/ContainerImage/s/manifests/service.yml
+              imagePullSecrets: 
+                $(imagePullSecretDev)
+              containers: |
+                $(acrdevurl)/$(repoName):$(tag)
+            
