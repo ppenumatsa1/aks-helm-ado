@@ -139,6 +139,20 @@ stages:
               kubernetesCluster: 'aks-dev-145243252'
               namespace: 'default'
               command: 'ls'
-              
+        
+          - task: HelmDeploy@0
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
+              azureResourceGroup: 'rg-ingenio'
+              kubernetesCluster: 'aks-dev-145243252'
+              namespace: 'default'
+              command: 'install'
+              chartType: 'FilePath'
+              chartPath: '$(Pipeline.Workspace)/s/app/mywebapp/'
+              chartVersion: 'v1'
+              releaseName: 'mywebapp'
+              valueFile: '$(Pipeline.Workspace)/s/app/mywebapp/values_dev.yaml'
+        
 
 
