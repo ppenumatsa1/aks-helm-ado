@@ -17,7 +17,7 @@ variables:
   azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
   azureResourceGroup: 'rg-ingenio'
   kubernetesDevCluster: 'aks-dev-58381122'
-  kubernetesStageCluster: 'aks-stage-58381122'
+  kubernetesStageCluster: 'aks-staging-58381122'
   kubernetesProdCluster: 'aks-prod-58381122'
 
   # Container Registries
@@ -162,7 +162,7 @@ stages:
                 --set image.tag=$(tag)
                 --set image.pullSecret=$(imagePullSecretDev)
 
-                
+
 - stage: CDStage
   displayName: CD for Stage Env
   dependsOn: CI
