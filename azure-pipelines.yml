@@ -14,23 +14,18 @@ variables:
   repoName: 'mywebapp'  
 
   # ACR Registry ADO Service Connections
-  containerRegistryDev: 'sc-acrdev145243252'
-  containerRegistryStage: 'sc-acrstage145243252'
-  containerRegistryProd: 'sc-acrprod145243252'
+  containerRegistryDev: 'sc-acrdev58381122'
   dockerfilePath: '**/Dockerfile'
 
-  acrdevurl: 'acrdev145243252.azurecr.io'
-  acrstageurl: 'acrstage145243252.azurecr.io'
-  acrprodurl: 'acrprod145243252.azurecr.io'
+  acrdevurl: 'acrdev58381122.azurecr.io'
 
-  imagePullSecretDev: 'acrdev145243252-auth'
-  imagePullSecretStage: 'acrstage145243252-auth'
-  imagePullSecretProd: 'acrprod145243252-auth'
+
+  imagePullSecretDev: 'acrdev58381122-auth'
+
 
   #kubernetes ADO Environments
   envdev: 'env-aks-dev.default'
-  envstage: 'env-aks-staging.default'
-  envprod: 'env-aks-prod.default'
+
  
   tag: '$(Build.BuildId)'
 
@@ -136,7 +131,7 @@ stages:
               connectionType: 'Azure Resource Manager'
               azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
               azureResourceGroup: 'rg-ingenio'
-              kubernetesCluster: 'aks-dev-145243252'
+              kubernetesCluster: 'aks-dev-58381122'
               namespace: 'default'
               command: 'ls'
         
@@ -145,15 +140,16 @@ stages:
               connectionType: 'Azure Resource Manager'
               azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
               azureResourceGroup: 'rg-ingenio'
-              kubernetesCluster: 'aks-dev-145243252'
+              kubernetesCluster: 'aks-dev-58381122'
               namespace: 'default'
               command: 'upgrade'
               chartType: 'FilePath'
-              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/app/mywebapp/'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               chartVersion: 'v1'
               releaseName: 'mywebapp'
-              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/app/mywebapp/values_dev.yaml'
-              overrideValues: 'image.tag=$(tag) image.pullSecret=$(containerRegistryDev)'    
+              overrideValues: 'image.tag=$(tag) image.pullSecret=$(containerRegistryDev)'
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_dev.yaml'
+                  
         
 
 
