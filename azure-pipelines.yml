@@ -165,7 +165,8 @@ stages:
 
 - stage: CDStage
   displayName: CD for Stage Env
-  dependsOn: CI
+  dependsOn: CDDEV
+  condition: succeeded('CDDEV')
 
   jobs:
   - deployment: Deploy
@@ -198,7 +199,7 @@ stages:
 
 
           - task: Docker@2
-            displayName: Push Image to Dev ACR
+            displayName: Push Image to Stage ACR
             inputs:
               containerRegistry: $(containerRegistryStage)
               repository: $(repoName)
@@ -226,9 +227,6 @@ stages:
               chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               chartVersion: 'v1'
               releaseName: 'mywebapp'
-              #overrideValues: |
-              #  image.tag=$(tag) 
-              #  image.pullSecret=$(containerRegistryDev)
               valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_stage.yaml'
               arguments: 
                 --set image.tag=$(tag)
@@ -237,7 +235,8 @@ stages:
 
 - stage: CDProd
   displayName: CD for Prod Env
-  dependsOn: CI
+  dependsOn: CDStage
+  condition: succeeded('CDStage')
 
   jobs:
   - deployment: Deploy
@@ -270,7 +269,7 @@ stages:
 
 
           - task: Docker@2
-            displayName: Push Image to Dev ACR
+            displayName: Push Image to Prod ACR
             inputs:
               containerRegistry: $(containerRegistryProd)
               repository: $(repoName)
@@ -298,9 +297,6 @@ stages:
               chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               chartVersion: 'v1'
               releaseName: 'mywebapp'
-              #overrideValues: |
-              #  image.tag=$(tag) 
-              #  image.pullSecret=$(containerRegistryDev)
               valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_stage.yaml'
               arguments: 
                 --set image.tag=$(tag)
