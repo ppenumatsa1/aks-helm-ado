@@ -23,7 +23,7 @@ variables:
   # Container Registries
   containerRegistryDev: 'sc-acrdev58381122'
   containerRegistryProd: 'sc-acrprod58381122'
-  containerRegistryTest: 'sc-acrtest58381122'
+  containerRegistryStage: 'sc-acrstage58381122'
   dockerfilePath: '**/Dockerfile'
 
   acrdevurl: 'acrdev58381122.azurecr.io'
@@ -145,9 +145,9 @@ stages:
           - task: HelmDeploy@0
             inputs:
               connectionType: 'Azure Resource Manager'
-              azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
-              azureResourceGroup: 'rg-ingenio'
-              kubernetesCluster: 'aks-dev-58381122'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(kubernetesDevCluster)
               namespace: 'default'
               command: 'upgrade'
               chartType: 'FilePath'
@@ -161,6 +161,150 @@ stages:
               arguments: 
                 --set image.tag=$(tag)
                 --set image.pullSecret=$(imagePullSecretDev)
+
+                
+- stage: CDStage
+  displayName: CD for Stage Env
+  dependsOn: CI
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to Stage Environment
+    variables:
+    - name: acr-url
+      value: $(acrstageurl)
+    - name: image-name
+      value: $(repoName)
+    pool: 
+      vmImage: $(vmImageName)
+    environment: $(envstage)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Docker@2
+            displayName: Load Image from CI
+            inputs:
+              command: load
+              arguments: '--input $(Pipeline.Workspace)/ContainerImage/$(repoName).image.tar'
+            
+          - task: Docker@2
+            displayName: ReTag Image with ACR Name - BuildId
+            inputs:
+              containerRegistry: '$(containerRegistryStage)'
+              repository: '$(repoName)'
+              command: tag
+              arguments: '$(repoName):$(tag)  $(acrstageurl)/$(repoName):$(tag)'
+
+
+          - task: Docker@2
+            displayName: Push Image to Dev ACR
+            inputs:
+              containerRegistry: $(containerRegistryStage)
+              repository: $(repoName)
+              command: push
+              tags: $(tag)
+          
+          - task: KubernetesManifest@0
+            inputs:
+              action: createSecret
+              namespace: default
+              secretType: dockerRegistry
+              secretName: $(imagePullSecretStage)
+              dockerRegistryEndpoint: $(containerRegistryStage)
+
+        
+          - task: HelmDeploy@0
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(kubernetesStageCluster)
+              namespace: 'default'
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
+              chartVersion: 'v1'
+              releaseName: 'mywebapp'
+              #overrideValues: |
+              #  image.tag=$(tag) 
+              #  image.pullSecret=$(containerRegistryDev)
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_stage.yaml'
+              arguments: 
+                --set image.tag=$(tag)
+                --set image.pullSecret=$(imagePullSecretStage)
+
+
+- stage: CDProd
+  displayName: CD for Prod Env
+  dependsOn: CI
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to Production Environment
+    variables:
+    - name: acr-url
+      value: $(acrprodurl)
+    - name: image-name
+      value: $(repoName)
+    pool: 
+      vmImage: $(vmImageName)
+    environment: $(envprod)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Docker@2
+            displayName: Load Image from CI
+            inputs:
+              command: load
+              arguments: '--input $(Pipeline.Workspace)/ContainerImage/$(repoName).image.tar'
+            
+          - task: Docker@2
+            displayName: ReTag Image with ACR Name - BuildId
+            inputs:
+              containerRegistry: '$(containerRegistryProd)'
+              repository: '$(repoName)'
+              command: tag
+              arguments: '$(repoName):$(tag)  $(acrprodurl)/$(repoName):$(tag)'
+
+
+          - task: Docker@2
+            displayName: Push Image to Dev ACR
+            inputs:
+              containerRegistry: $(containerRegistryProd)
+              repository: $(repoName)
+              command: push
+              tags: $(tag)
+          
+          - task: KubernetesManifest@0
+            inputs:
+              action: createSecret
+              namespace: default
+              secretType: dockerRegistry
+              secretName: $(imagePullSecretProd)
+              dockerRegistryEndpoint: $(containerRegistryProd)
+
+        
+          - task: HelmDeploy@0
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(kubernetesProdCluster)
+              namespace: 'default'
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
+              chartVersion: 'v1'
+              releaseName: 'mywebapp'
+              #overrideValues: |
+              #  image.tag=$(tag) 
+              #  image.pullSecret=$(containerRegistryDev)
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_stage.yaml'
+              arguments: 
+                --set image.tag=$(tag)
+                --set image.pullSecret=$(imagePullSecretProd)
 
                   
         
