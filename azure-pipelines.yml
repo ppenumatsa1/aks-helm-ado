@@ -297,7 +297,7 @@ stages:
               chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               chartVersion: 'v1'
               releaseName: 'mywebapp'
-              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_stage.yaml'
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_prod.yaml'
               arguments: 
                 --set image.tag=$(tag)
                 --set image.pullSecret=$(imagePullSecretProd)
