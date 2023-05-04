@@ -33,6 +33,7 @@ az aks create \
     --name $aksDev \
     --node-count 1 \
     --enable-addons monitoring \
+    --attach-acr $containerRegistryDev \
     --generate-ssh-keys \
     --kubernetes-version 1.25.6
 
@@ -44,6 +45,7 @@ az aks create \
     --name $aksStaging \
     --node-count 1 \
     --enable-addons monitoring \
+    --attach-acr $containerRegistryStage \
     --generate-ssh-keys \
     --kubernetes-version 1.25.6
 
@@ -55,6 +57,7 @@ az aks create \
     --name $aksProd \
     --node-count 1 \
     --enable-addons monitoring \
+    --attach-acr $containerRegistryProd \
     --generate-ssh-keys \
     --kubernetes-version 1.25.6
  
