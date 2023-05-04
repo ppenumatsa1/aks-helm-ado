@@ -5,7 +5,7 @@
 replicaCount: 3
 
 image:
-  repository: acrprod75631322.azurecr.io/mywebapp
+  repository: acrprod903874156.azurecr.io/mywebapp
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
