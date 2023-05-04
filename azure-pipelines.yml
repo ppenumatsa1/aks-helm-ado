@@ -38,9 +38,9 @@ variables:
   #kubernetes ADO Environments
 
 
-  envdev: 'env-aks-dev.default'
-  envstage: 'env-aks-stage.default'
-  envprod: 'env-aks-prod.default'
+  envdev: 'env-aks-dev'
+  envstage: 'env-aks-stage'
+  envprod: 'env-aks-prod'
  
   tag: '$(Build.BuildId)'
 
