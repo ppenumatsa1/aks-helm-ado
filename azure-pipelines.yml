@@ -136,6 +136,7 @@ stages:
           - task: KubernetesManifest@0
             inputs:
               action: createSecret
+              kubernetesServiceConnection: $(kubernetesDevCluster)
               namespace: default
               secretType: dockerRegistry
               secretName: $(imagePullSecretDev)
@@ -209,6 +210,7 @@ stages:
           - task: KubernetesManifest@0
             inputs:
               action: createSecret
+              kubernetesServiceConnection: $(kubernetesStageCluster)
               namespace: default
               secretType: dockerRegistry
               secretName: $(imagePullSecretStage)
@@ -279,6 +281,7 @@ stages:
           - task: KubernetesManifest@0
             inputs:
               action: createSecret
+              kubernetesServiceConnection: $(kubernetesProdCluster)
               namespace: default
               secretType: dockerRegistry
               secretName: $(imagePullSecretProd)
