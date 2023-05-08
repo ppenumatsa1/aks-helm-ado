@@ -175,6 +175,8 @@ stages:
               azureResourceGroup: $(azureResourceGroup)
               kubernetesCluster: $(kubernetesDevCluster)
               command: 'rollback'
+              chartType: 'FilePath'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               releaseName: 'mywebapp'
               arguments: --wait
 
