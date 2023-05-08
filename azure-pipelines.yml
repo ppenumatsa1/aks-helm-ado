@@ -134,6 +134,7 @@ stages:
               tags: $(tag)
           
           - task: KubernetesManifest@0
+            displayName: Create Secret 
             inputs:
               action: createSecret
               kubernetesServiceConnection: $(kubernetesDevCluster)
@@ -144,6 +145,8 @@ stages:
 
         
           - task: HelmDeploy@0
+            displayName: Deploy to Dev Cluster
+            timeoutInMinutes: 2
             inputs:
               connectionType: 'Azure Resource Manager'
               azureSubscription: $(azureSubscription)
@@ -164,6 +167,7 @@ stages:
                 --set image.pullSecret=$(imagePullSecretDev)
 
           - task: HelmDeploy@0
+            displayName: Rollback failures
             condition: failed()
             inputs:
               connectionType: 'Azure Resource Manager'
@@ -172,6 +176,7 @@ stages:
               kubernetesCluster: $(kubernetesDevCluster)
               namespace: 'default'
               command: 'rollback'
+              releaseName: 'mywebapp'
               arguments: --wait
 
 
