@@ -165,6 +165,7 @@ stages:
               arguments: 
                 --set image.tag=$(tag)
                 --set image.pullSecret=$(imagePullSecretDev)
+              failOnStderr: true
 
           - task: HelmDeploy@0
             displayName: Rollback failures
@@ -175,8 +176,6 @@ stages:
               azureResourceGroup: $(azureResourceGroup)
               kubernetesCluster: $(kubernetesDevCluster)
               command: 'rollback'
-              chartType: 'FilePath'
-              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               releaseName: 'mywebapp'
               arguments: 
                 --cleanup-on-fail
