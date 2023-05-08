@@ -178,7 +178,9 @@ stages:
               chartType: 'FilePath'
               chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               releaseName: 'mywebapp'
-              arguments: --wait
+              arguments: 
+                --cleanup-on-fail
+                --wait
 
 
 - stage: CDStage
