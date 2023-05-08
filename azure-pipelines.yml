@@ -167,19 +167,25 @@ stages:
                 --set image.pullSecret=$(imagePullSecretDev)
               failOnStderr: true
 
-          - task: HelmDeploy@0
-            displayName: Rollback failures
-            condition: failed()
-            inputs:
-              connectionType: 'Azure Resource Manager'
-              azureSubscription: $(azureSubscription)
-              azureResourceGroup: $(azureResourceGroup)
-              kubernetesCluster: $(kubernetesDevCluster)
-              command: 'rollback'
-              releaseName: 'mywebapp'
-              arguments: 
-                --cleanup-on-fail
-                --wait
+          #- task: HelmDeploy@0
+          #  displayName: Rollback failures
+          #  condition: failed()
+          #  inputs:
+          #    connectionType: 'Azure Resource Manager'
+          #    azureSubscription: $(azureSubscription)
+          #    azureResourceGroup: $(azureResourceGroup)
+          #    kubernetesCluster: $(kubernetesDevCluster)
+          #    command: 'rollback'
+          #    releaseName: 'mywebapp'
+          #    arguments: 
+          #      --cleanup-on-fail
+          #      --wait
+          
+          - script: |
+              releaseName='mywebapp'
+              relaseRevision=3
+              helm rollback $(mywebapp) 
+              displayName: Rollback
 
 
 - stage: CDStage
