@@ -163,6 +163,17 @@ stages:
                 --set image.tag=$(tag)
                 --set image.pullSecret=$(imagePullSecretDev)
 
+          - task: HelmDeploy@0
+            condition: succeeded('CDDEV') == false
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(kubernetesDevCluster)
+              namespace: 'default'
+              command: 'rollback'
+              arguments: --wait
+
 
 - stage: CDStage
   displayName: CD for Stage Env
