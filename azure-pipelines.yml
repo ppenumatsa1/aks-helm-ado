@@ -186,6 +186,7 @@ stages:
               relaseRevision=3
               helm rollback $(mywebapp) 
               displayName: Rollback
+              condition: failed()
 
 
 - stage: CDStage
