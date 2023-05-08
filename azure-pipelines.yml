@@ -164,7 +164,7 @@ stages:
                 --set image.pullSecret=$(imagePullSecretDev)
 
           - task: HelmDeploy@0
-            condition: succeeded('CDDEV') == false
+            condition: failed()
             inputs:
               connectionType: 'Azure Resource Manager'
               azureSubscription: $(azureSubscription)
