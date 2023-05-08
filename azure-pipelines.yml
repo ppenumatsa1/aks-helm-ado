@@ -174,10 +174,8 @@ stages:
               azureSubscription: $(azureSubscription)
               azureResourceGroup: $(azureResourceGroup)
               kubernetesCluster: $(kubernetesDevCluster)
-              namespace: 'default'
               command: 'rollback'
               releaseName: 'mywebapp'
-              chartVersion: 'v1'
               arguments: --wait
 
 
