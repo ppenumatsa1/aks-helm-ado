@@ -16,23 +16,23 @@ variables:
   # Azure resoruces
   azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
   azureResourceGroup: 'rg-ingenio'
-  kubernetesDevCluster: 'aks-dev-903874156'
-  kubernetesStageCluster: 'aks-staging-903874156'
-  kubernetesProdCluster: 'aks-prod-903874156'
+  kubernetesDevCluster: 'aks-dev-558950328'
+  kubernetesStageCluster: 'aks-staging-558950328'
+  kubernetesProdCluster: 'aks-prod-558950328'
 
   # Container Registries
-  containerRegistryDev: 'sc-acrdev903874156'
-  containerRegistryProd: 'sc-acrprod903874156'
-  containerRegistryStage: 'sc-acrstage903874156'
+  containerRegistryDev: 'sc-acrdev558950328'
+  containerRegistryProd: 'sc-acrprod558950328'
+  containerRegistryStage: 'sc-acrstage558950328'
   dockerfilePath: '**/Dockerfile'
 
-  acrdevurl: 'acrdev903874156.azurecr.io'
-  acrstageurl: 'acrstage903874156.azurecr.io'
-  acrprodurl: 'acrprod903874156.azurecr.io'
+  acrdevurl: 'acrdev558950328.azurecr.io'
+  acrstageurl: 'acrstage558950328.azurecr.io'
+  acrprodurl: 'acrprod558950328.azurecr.io'
 
-  imagePullSecretDev: 'acrdev903874156-auth'
-  imagePullSecretStage: 'acrstage903874156-auth'
-  imagePullSecretProd: 'acrprod903874156-auth'
+  imagePullSecretDev: 'acrdev558950328-auth'
+  imagePullSecretStage: 'acrstage558950328-auth'
+  imagePullSecretProd: 'acrprod558950328-auth'
 
 
   #kubernetes ADO Environments
