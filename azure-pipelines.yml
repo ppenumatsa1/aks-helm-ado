@@ -177,6 +177,7 @@ stages:
               namespace: 'default'
               command: 'rollback'
               releaseName: 'mywebapp'
+              chartVersion: 'v1'
               arguments: --wait
 
 
