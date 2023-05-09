@@ -172,7 +172,7 @@ stages:
               
           - task: AzureCLI@2
             displayName: 'Helm Rollback'
-            condition: failed('helmUpgrade')
+            condition: failed()
             inputs:
               azureSubscription: $(azureSubscription)
               scriptType: 'bash'
