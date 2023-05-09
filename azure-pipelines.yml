@@ -10,27 +10,42 @@ resources:
 - repo: self
 
 variables:
-  #Repo Named
-  repoName: 'webfrontend'  
+  #Repo Name
+  repoName: 'mywebapp'  
 
-  # ACR Registry ADO Service Connections
-  containerRegistryDev: 'sc-acrdev145243252'
-  containerRegistryStage: 'sc-acrstage145243252'
-  containerRegistryProd: 'sc-acrprod145243252'
+  #Release Details
+  releaseName: 'mywebapp'
+  releaseVersion: '1'
+  namespace: 'default'
+
+  # Azure resoruces
+  azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
+  azureResourceGroup: 'rg-ingenio'
+  kubernetesDevCluster: 'aks-dev-558950328'
+  kubernetesStageCluster: 'aks-staging-558950328'
+  kubernetesProdCluster: 'aks-prod-558950328'
+
+  # Container Registries
+  containerRegistryDev: 'sc-acrdev558950328'
+  containerRegistryProd: 'sc-acrprod558950328'
+  containerRegistryStage: 'sc-acrstage558950328'
   dockerfilePath: '**/Dockerfile'
 
-  acrdevurl: 'acrdev145243252.azurecr.io'
-  acrstageurl: 'acrstage145243252.azurecr.io'
-  acrprodurl: 'acrprod145243252.azurecr.io'
+  acrdevurl: 'acrdev558950328.azurecr.io'
+  acrstageurl: 'acrstage558950328.azurecr.io'
+  acrprodurl: 'acrprod558950328.azurecr.io'
 
-  imagePullSecretDev: 'acrdev145243252-auth'
-  imagePullSecretStage: 'acrstage145243252-auth'
-  imagePullSecretProd: 'acrprod145243252-auth'
+  imagePullSecretDev: 'acrdev558950328-auth'
+  imagePullSecretStage: 'acrstage558950328-auth'
+  imagePullSecretProd: 'acrprod558950328-auth'
+
 
   #kubernetes ADO Environments
-  envdev: 'env-aks-dev-145243252.default'
-  envstage: 'env-aks-staging-145243252.default'
-  envprod: 'env-aks-prod-145243252.default'
+
+
+  envdev: 'env-aks-dev'
+  envstage: 'env-aks-stage'
+  envprod: 'env-aks-prod'
  
   tag: '$(Build.BuildId)'
 
@@ -71,6 +86,14 @@ stages:
         artifact: 'ContainerImage'
         publishLocation: 'pipeline'
       
+    - task: HelmInstaller@0
+      displayName: Install Helm
+      inputs:
+        helmVersion: '3.11.0'
+        installKubectl: true
+        kubectlVersion: '1.26.1'
+    
+
 
 
 - stage: CDDEV
@@ -115,37 +138,240 @@ stages:
               command: push
               tags: $(tag)
           
-
           - task: KubernetesManifest@0
+            displayName: Create Secret 
             inputs:
               action: createSecret
+              kubernetesServiceConnection: $(kubernetesDevCluster)
               namespace: default
               secretType: dockerRegistry
               secretName: $(imagePullSecretDev)
               dockerRegistryEndpoint: $(containerRegistryDev)
 
-          - task: replacetokens@5
+        
+          - task: HelmDeploy@0
+            displayName: Deploy to Dev Cluster
+            timeoutInMinutes: 2
+            continueOnError: true
             inputs:
-              rootDirectory: '$(Pipeline.Workspace)/ContainerImage/s/manifests'
-              targetFiles: 'deployment.yml'
-              tokenPattern: 'custom'
-              writeBOM: true
-              actionOnMissing: 'warn'
-              keepToken: false
-              tokenPrefix: __
-              tokenSuffix: __
-              actionOnNoFiles: 'continue'
-              enableTelemetry: true
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(kubernetesDevCluster)
+              namespace: 'default'
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
+              chartVersion: 'v1'
+              releaseName: 'mywebapp'
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_dev.yaml'
+              arguments: 
+                --set image.tag=$(tag)
+                --set image.pullSecret=$(imagePullSecretDev)
+              
+          - task: AzureCLI@2
+            displayName: 'Helm Rollback'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                helmStatus=$(az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesDevCluster) && helm status $(releaseName) -n $(namespace))
+                      if [[ $helmStatus == *"deployed"* ]]; then
+                        echo "Helm release deployed successfully, no rollback required."
+                      else
+                        echo "Helm release failed to deploy, initiating rollback."
+                        helm rollback $(releaseName) -n $(namespace)
+                      fi
+          #- task: HelmDeploy@0
+          #  displayName: Rollback failures
+          #  condition: failed()
+          #  inputs:
+          #    connectionType: 'Azure Resource Manager'
+          #    azureSubscription: $(azureSubscription)
+          #    azureResourceGroup: $(azureResourceGroup)
+          #    kubernetesCluster: $(kubernetesDevCluster)
+          #    command: 'rollback'
+          #    releaseName: 'mywebapp'
+          #    arguments: 
+          #      --cleanup-on-fail
+          #      --wait
 
-          - task: KubernetesManifest@0
-            displayName: Deploy to Kubernetes cluster
+
+
+- stage: CDStage
+  displayName: CD for Stage Env
+  dependsOn: CDDEV
+  condition: succeeded('CDDEV')
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to Stage Environment
+    variables:
+    - name: acr-url
+      value: $(acrstageurl)
+    - name: image-name
+      value: $(repoName)
+    pool: 
+      vmImage: $(vmImageName)
+    environment: $(envstage)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Docker@2
+            displayName: Load Image from CI
             inputs:
-              action: deploy
-              manifests: |
-                $(Pipeline.Workspace)/ContainerImage/s/manifests/deployment.yml
-                $(Pipeline.Workspace)/ContainerImage/s/manifests/service.yml
-              imagePullSecrets: 
-                $(imagePullSecretDev)
-              containers: |
-                $(acrdevurl)/$(repoName):$(tag)
+              command: load
+              arguments: '--input $(Pipeline.Workspace)/ContainerImage/$(repoName).image.tar'
             
+          - task: Docker@2
+            displayName: ReTag Image with ACR Name - BuildId
+            inputs:
+              containerRegistry: '$(containerRegistryStage)'
+              repository: '$(repoName)'
+              command: tag
+              arguments: '$(repoName):$(tag)  $(acrstageurl)/$(repoName):$(tag)'
+
+
+          - task: Docker@2
+            displayName: Push Image to Stage ACR
+            inputs:
+              containerRegistry: $(containerRegistryStage)
+              repository: $(repoName)
+              command: push
+              tags: $(tag)
+          
+          - task: KubernetesManifest@0
+            inputs:
+              action: createSecret
+              kubernetesServiceConnection: $(kubernetesStageCluster)
+              namespace: default
+              secretType: dockerRegistry
+              secretName: $(imagePullSecretStage)
+              dockerRegistryEndpoint: $(containerRegistryStage)
+
+        
+          - task: HelmDeploy@0
+            displayName: Deploy to Stage Cluster
+            timeoutInMinutes: 2
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(kubernetesStageCluster)
+              namespace: 'default'
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
+              chartVersion: 'v1'
+              releaseName: 'mywebapp'
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_stage.yaml'
+              arguments: 
+                --set image.tag=$(tag)
+                --set image.pullSecret=$(imagePullSecretStage)
+
+          - task: AzureCLI@2
+            displayName: 'Helm Rollback'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                helmStatus=$(az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesStageCluster) && helm status $(releaseName) -n $(namespace))
+                      if [[ $helmStatus == *"deployed"* ]]; then
+                        echo "Helm release deployed successfully, no rollback required."
+                      else
+                        echo "Helm release failed to deploy, initiating rollback."
+                        helm rollback $(releaseName) -n $(namespace)
+                      fi
+
+- stage: CDProd
+  displayName: CD for Prod Env
+  dependsOn: CDStage
+  condition: succeeded('CDStage')
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy to Production Environment
+    variables:
+    - name: acr-url
+      value: $(acrprodurl)
+    - name: image-name
+      value: $(repoName)
+    pool: 
+      vmImage: $(vmImageName)
+    environment: $(envprod)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Docker@2
+            displayName: Load Image from CI
+            inputs:
+              command: load
+              arguments: '--input $(Pipeline.Workspace)/ContainerImage/$(repoName).image.tar'
+            
+          - task: Docker@2
+            displayName: ReTag Image with ACR Name - BuildId
+            inputs:
+              containerRegistry: '$(containerRegistryProd)'
+              repository: '$(repoName)'
+              command: tag
+              arguments: '$(repoName):$(tag)  $(acrprodurl)/$(repoName):$(tag)'
+
+
+          - task: Docker@2
+            displayName: Push Image to Prod ACR
+            inputs:
+              containerRegistry: $(containerRegistryProd)
+              repository: $(repoName)
+              command: push
+              tags: $(tag)
+          
+          - task: KubernetesManifest@0
+            inputs:
+              action: createSecret
+              kubernetesServiceConnection: $(kubernetesProdCluster)
+              namespace: default
+              secretType: dockerRegistry
+              secretName: $(imagePullSecretProd)
+              dockerRegistryEndpoint: $(containerRegistryProd)
+
+        
+          - task: HelmDeploy@0
+            displayName: Deploy to Production Cluster
+            timeoutInMinutes: 2
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscription: $(azureSubscription)
+              azureResourceGroup: $(azureResourceGroup)
+              kubernetesCluster: $(kubernetesProdCluster)
+              namespace: 'default'
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
+              chartVersion: 'v1'
+              releaseName: 'mywebapp'
+              valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_prod.yaml'
+              arguments: 
+                --set image.tag=$(tag)
+                --set image.pullSecret=$(imagePullSecretProd)
+
+                  
+        
+          - task: AzureCLI@2
+            displayName: 'Helm Rollback'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                helmStatus=$(az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesProdCluster) && helm status $(releaseName) -n $(namespace))
+                      if [[ $helmStatus == *"deployed"* ]]; then
+                        echo "Helm release deployed successfully, no rollback required."
+                      else
+                        echo "Helm release failed to deploy, initiating rollback."
+                        helm rollback $(releaseName) -n $(namespace)
+                      fi
+

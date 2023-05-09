@@ -1,15 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "webfrontend.fullname" . }}
+  name: {{ include "mywebapp.fullname" . }}
   labels:
-    {{- include "webfrontend.labels" . | nindent 4 }}
+    {{- include "mywebapp.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
+      targetPort: 8080
       protocol: TCP
       name: http
   selector:
-    {{- include "webfrontend.selectorLabels" . | nindent 4 }}
+    {{- include "mywebapp.selectorLabels" . | nindent 4 }}
