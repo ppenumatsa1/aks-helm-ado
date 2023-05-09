@@ -151,7 +151,6 @@ stages:
         
           - task: HelmDeploy@0
             displayName: Deploy to Dev Cluster
-            name: helmUpgrade
             timeoutInMinutes: 2
             continueOnError: true
             inputs:
@@ -254,6 +253,8 @@ stages:
 
         
           - task: HelmDeploy@0
+            displayName: Deploy to Stage Cluster
+            timeoutInMinutes: 2
             inputs:
               connectionType: 'Azure Resource Manager'
               azureSubscription: $(azureSubscription)
@@ -270,6 +271,20 @@ stages:
                 --set image.tag=$(tag)
                 --set image.pullSecret=$(imagePullSecretStage)
 
+          - task: AzureCLI@2
+            displayName: 'Helm Rollback'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                helmStatus=$(az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesStageCluster) && helm status $(releaseName) -n $(namespace))
+                      if [[ $helmStatus == *"deployed"* ]]; then
+                        echo "Helm release deployed successfully, no rollback required."
+                      else
+                        echo "Helm release failed to deploy, initiating rollback."
+                        helm rollback $(releaseName) -n $(namespace)
+                      fi
 
 - stage: CDProd
   displayName: CD for Prod Env
@@ -325,6 +340,8 @@ stages:
 
         
           - task: HelmDeploy@0
+            displayName: Deploy to Production Cluster
+            timeoutInMinutes: 2
             inputs:
               connectionType: 'Azure Resource Manager'
               azureSubscription: $(azureSubscription)
@@ -343,5 +360,18 @@ stages:
 
                   
         
-
+          - task: AzureCLI@2
+            displayName: 'Helm Rollback'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                helmStatus=$(az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesProdCluster) && helm status $(releaseName) -n $(namespace))
+                      if [[ $helmStatus == *"deployed"* ]]; then
+                        echo "Helm release deployed successfully, no rollback required."
+                      else
+                        echo "Helm release failed to deploy, initiating rollback."
+                        helm rollback $(releaseName) -n $(namespace)
+                      fi
 
