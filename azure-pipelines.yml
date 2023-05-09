@@ -10,8 +10,13 @@ resources:
 - repo: self
 
 variables:
-  #Repo Named
+  #Repo Name
   repoName: 'mywebapp'  
+
+  #Release Details
+  releaseName: 'mywebapp'
+  releaseVersion: '1'
+  namespace: 'default'
 
   # Azure resoruces
   azureSubscription: 'ME-MngEnvMCAP011532-ppenumatsa-1(b6113872-8e9a-4443-bd4d-4295049e3294)'
@@ -146,7 +151,9 @@ stages:
         
           - task: HelmDeploy@0
             displayName: Deploy to Dev Cluster
+            name: helmUpgrade
             timeoutInMinutes: 2
+            continueOnError: true
             inputs:
               connectionType: 'Azure Resource Manager'
               azureSubscription: $(azureSubscription)
@@ -158,15 +165,26 @@ stages:
               chartPath: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/'
               chartVersion: 'v1'
               releaseName: 'mywebapp'
-              #overrideValues: |
-              #  image.tag=$(tag) 
-              #  image.pullSecret=$(containerRegistryDev)
               valueFile: '$(Pipeline.Workspace)/ContainerImage/s/mywebapp/values_dev.yaml'
               arguments: 
                 --set image.tag=$(tag)
                 --set image.pullSecret=$(imagePullSecretDev)
-              failOnStderr: true
-
+              
+          - task: AzureCLI@2
+            displayName: 'Helm Rollback'
+            condition: failed('helmUpgrade')
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                helmStatus=$(az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesDevCluster) && helm status $(releaseName) -n $(namespace))
+                      if [[ $helmStatus == *"deployed"* ]]; then
+                        echo "Helm release deployed successfully, no rollback required."
+                      else
+                        echo "Helm release failed to deploy, initiating rollback."
+                        az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesDevCluster) && helm rollback $(releaseName) $(releaseVersion) -n $(namespace)
+                      fi
           #- task: HelmDeploy@0
           #  displayName: Rollback failures
           #  condition: failed()
@@ -180,13 +198,7 @@ stages:
           #    arguments: 
           #      --cleanup-on-fail
           #      --wait
-          
-          - script: |
-              releaseName='mywebapp'
-              relaseRevision=3
-              helm rollback $(mywebapp) 
-              displayName: Rollback
-              condition: failed()
+
 
 
 - stage: CDStage
