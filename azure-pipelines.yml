@@ -182,7 +182,7 @@ stages:
                         echo "Helm release deployed successfully, no rollback required."
                       else
                         echo "Helm release failed to deploy, initiating rollback."
-                        az aks get-credentials --resource-group $(azureResourceGroup) --name $(kubernetesDevCluster) && helm rollback $(releaseName) $(releaseVersion) -n $(namespace)
+                        helm rollback $(releaseName) -n $(namespace)
                       fi
           #- task: HelmDeploy@0
           #  displayName: Rollback failures
